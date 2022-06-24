@@ -498,9 +498,9 @@ Row
 
 Here are **two measures of health in Priority Neighbourhoods**
 
--   Which people have more emergency hospitalisations?
+-   Where do people have more emergency hospitalisations?
 
--   Which people have more hospitalisations for drug use?
+-   Where do people have more hospitalisations for drug use?
 
 Row
 ----------------------------------------------
@@ -587,6 +587,9 @@ Sources
 Row
 ----------------------------------------------
 ### 
+Questions and comments very welcome!  
+Email [Jess Butler](jessicabutler@abdn.ac.uk)  
+
 
 All data and code for this analysis are available [here](https://github.com/JessButler/priority_neighbourhoods)  
 
