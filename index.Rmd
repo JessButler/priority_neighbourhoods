@@ -603,7 +603,9 @@ All data and code for this analysis are available [here](https://github.com/Jess
 
 - overcrowding 
 - no central heating 
-- people age 16 to 19 not in education, employment or training
+- people age 16 to 19 not in education, employment or training  
+- emergency hospitalisations
+- drugs-related hospitalisations
 
 [2011 Scottish census](https://www.scotlandscensus.gov.uk/documents/2011-census-table-data-sns-data-zone-2011/) was the source for  
 
