@@ -137,30 +137,14 @@ simd %>%
   mutate(
     simd_rank_scot =
       ntile(-simd2020v2_rank, 100),
-    education_rank_scot =
-      ntile(simd2020_education_domain_rank, 100),
-    health_rank_scot =
-      ntile(simd2020_health_domain_rank, 100),
-    housing_rank_scot =
-      ntile(simd2020_housing_domain_rank, 100),
-    employment_rank_scot =
-      ntile(simd2020_employment_domain_rank, 100),
-    income_rank_scot = 
-      ntile(simd2020v2_income_domain_rank, 100),
-    working_age_prop = 
-      working_age_population / total_population,
-    working_age_rank_scot =
-      ntile(working_age_prop, 100),
     overcrowded_rank_scot =
       ntile(-(overcrowded_rate), 100),
     no_central_heat_rank_scot = 
       ntile(-(nocentralheat_rate), 100),
-    disability_rank_scot =
-      ntile(-cif, 100),
     emergency_rank_scot =
       ntile(-emerg, 100),
-    smr_rank_scot =
-      ntile(-smr, 100),
+    drug_rank_scot =
+      ntile(-drug, 100),
     neet_rank_scot =
       ntile(-not_participating, 100),
     crime_rank_scot =

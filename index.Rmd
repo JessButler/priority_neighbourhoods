@@ -498,19 +498,19 @@ Row
 
 Here are **two measures of health in Priority Neighbourhoods**
 
--   Which people need more emergency medical care?
+-   Which people have more emergency hospitalisations?
 
--   Which areas have high death rates?
+-   Which people have more hospitalisations for drug use?
 
 Row
 ----------------------------------------------
 
 ### 
 
-**Red areas have higher emergency medical care than 95% of Scotland.**
+**Red areas have more emergency hospitalisations than 95% of Scotland.**
 
 ```{r}
-#new immigrants
+#emergency care
 aberdeen_priority_sf %>%
   filter(emergency_rank_scot <= 5) %>%
   mapview(
@@ -523,19 +523,18 @@ aberdeen_priority_sf %>%
 ### 
 
 ```{r}
-
 aberdeen_priority %>%
   select(data_zone, dz_name, total_population, emerg) %>%
   arrange(desc(emerg)) %>%
   gt() %>%
   tab_header(
     title = "Priority Neighbourhoods", 
-    subtitle = "ordered by most emergency medical care") %>%
+    subtitle = "ordered by most emergency hospitalisations") %>%
   cols_label(
     data_zone = "Data Zone",
     dz_name = "Name", 
     total_population = "Population", 
-    emerg = "emergency care (Scottish average = 100)")  %>%
+    emerg = "emergency hospitalisations (Scottish average = 100)")  %>%
   tab_options(container.height = 400,
               data_row.padding = 1,
               heading.padding = 1,
@@ -547,12 +546,12 @@ Row
 
 ### 
 
-**Red areas have higher death rates than 95% of Scotland.**
+**Red areas have more hospitalisations for drug use than 95% of Scotland.**
 
 ```{r}
 #mortality
 aberdeen_priority_sf %>%
-  filter(smr_rank_scot <= 5) %>%
+  filter(drug_rank_scot <= 5) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -565,17 +564,17 @@ aberdeen_priority_sf %>%
 ```{r}
 
 aberdeen_priority %>%
-  select(data_zone, dz_name, total_population, smr) %>%
-  arrange(desc(smr)) %>%
+  select(data_zone, dz_name, total_population, drug) %>%
+  arrange(desc(drug)) %>%
   gt() %>%
   tab_header(
     title = "Priority Neighbourhoods", 
-    subtitle = "ordered by highest death rates") %>%
+    subtitle = "ordered by highest drug hospitalisations") %>%
   cols_label(
     data_zone = "Data Zone",
     dz_name = "Name", 
     total_population = "Population", 
-    smr = "death rates (Scottish average = 100)")  %>%
+    drug = "drug hospitalisations (Scottish average = 100)")  %>%
   tab_options(container.height = 400,
               data_row.padding = 1,
               heading.padding = 1,
