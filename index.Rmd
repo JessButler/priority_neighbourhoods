@@ -86,13 +86,13 @@ The Community Empowerment Act gives support to neighbourhoods where people have 
 
 This website shows which Priority Neighbourhoods need support for
 
--   central heating
--   overcrowded homes
--   lone parents
--   recent immigrants
--   young people not in education, employment, or training
--   medical emergencies
--   crime
+- central heating
+- overcrowded homes
+- lone parents
+- recent immigrants
+- young people not in education, employment, or training
+- hospitalisations
+- crime
 
 **See the menu above for more information about Priority Neighbourhoods.**
 
@@ -120,7 +120,7 @@ Row
 
 The Scottish Government measures disadvantage with a score called the [Scottish Index of Multiple Deprivation](https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/). This score is created using data from 40 measures of health, education, crime, housing, and income.
 
-Here are **all of the Aberdeen Priority Neighbourhoods with their total disadvantage score**.
+This table shows **all of the Aberdeen Priority Neighbourhoods with their total disadvantage score**.
 
 Woodside (zone 4) is the most disadvantaged in Aberdeen, with a score of 97. A score of 97 means this Woodside neighbourhood is more disadvantaged than 97% of Scotland.
 
