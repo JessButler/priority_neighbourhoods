@@ -1,0 +1,192 @@
+---
+title: "data processing"
+---
+
+#Libraries
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(janitor)
+library(sf)
+```
+
+#SIMD Data
+```{r}
+#summary SIMD data
+simd_zones <- 
+  read_csv(here(
+    "data",
+    "SIMD+2020v2+-+datazone+lookup.csv")) %>%
+  clean_names %>%
+  rename(dz_name = d_zname,
+         iz_name = i_zname,
+         iz_code = i_zcode,
+         la_name = l_aname) %>%
+  select(dz:simd2020_housing_domain_rank, 
+         iz_code, iz_name, la_name)
+
+#components of SIMD (removed access measures)
+simd_indicators <- 
+  read_csv(here(
+    "data", 
+    "SIMD2020v2_indicators.csv")) %>%
+  clean_names() %>%
+  select(data_zone, 
+         total_population:university,
+         broadband:nocentralheat_rate)
+```
+
+#Census Data
+```{r}
+#2011 census data
+
+#proportion of population that is not white
+ethnicity <- 
+  read_csv(here(
+    "data", 
+    "SNS Data Zone 2011 blk", 
+    "KS201SC.csv")) %>%
+  rename(data_zone = "...1") %>%
+  clean_names() %>%
+  mutate(minority_ethnic_prop = 
+           1 - (white / all_people),
+         minority_ethnic_rank_scot = 
+           ntile(-minority_ethnic_prop, 100)) %>%
+  select(data_zone, 
+         ends_with("prop"), ends_with("scot"))
+
+#people living in lone parent household, and old people living alone
+households <- 
+  read_csv(here("data", 
+                "SNS Data Zone 2011 blk", 
+                "QS112SC.csv")) %>%
+  rename(data_zone = "...1") %>%
+  clean_names() %>%
+  mutate(lone_parent_prop = 
+           one_family_household_lone_parent_family / all_people_in_households,
+         lone_pensioner_prop =
+           one_person_household_aged_65_and_over / all_people_in_households,
+         lone_parent_rank_scot =
+           ntile(-lone_parent_prop, 100),
+         lone_pensioner_rank_scot =
+           ntile(-lone_pensioner_prop, 100)) %>%
+  select(data_zone, 
+         ends_with("prop"), ends_with("scot"))
+
+#less than two years residence in UK
+uk_residents <- 
+  read_csv(here(
+    "data", 
+    "SNS Data Zone 2011 blk", 
+    "QS803SC.csv")) %>%
+  rename(data_zone = "...1") %>%
+  clean_names() %>%
+  mutate(new_to_uk_prop = less_than_two_years / all_people,
+         new_to_uk_rank_scot = 
+           ntile(-new_to_uk_prop, 100)) %>%
+  select(data_zone, 
+         ends_with("prop"), ends_with("scot"))
+
+#sex breakdown by age group
+age_and_sex <- 
+  read_csv(here(
+    "data", 
+    "SNS Data Zone 2011 blk", 
+    "LC1117SC.csv")) %>%
+  rename(data_zone = "...1", age_group = "...2") %>%
+  clean_names() 
+
+#proportion of people under 5 
+ages <-
+age_and_sex %>%
+  select(data_zone:all_people) %>%
+  pivot_wider(names_from = age_group, values_from = all_people) %>%
+  clean_names() %>%
+  mutate(under_5_prop = x0_to_4 / all_people,
+         under_5_rank_scot = 
+           ntile(-under_5_prop, 100))
+
+ages <-
+  ages %>%
+  select(data_zone, ends_with("prop"), ends_with("scot"))
+```
+
+#Tidy SIMD
+```{r}
+#join SIMD files
+#remove "%" and "*" and make numeric
+#convert suppressed small values to zero
+
+simd <- 
+  full_join(simd_indicators, simd_zones, 
+            by = c("data_zone" = "dz")) %>%
+  relocate(dz_name, .after = data_zone) %>%
+  mutate(across(everything(), 
+                ~ str_remove_all(., "%")),
+         across(everything(), 
+                ~ str_replace_all(., "\\*", "0")),
+         across(total_population:simd2020_housing_domain_rank, 
+                ~ as.numeric(.)))
+
+#create percentiles for SIMD indicators
+#positive if a high score is good
+#negative if a high score is bad
+
+simd <-
+simd %>%
+  mutate(
+    simd_rank_scot =
+      ntile(-simd2020v2_rank, 100),
+    education_rank_scot =
+      ntile(simd2020_education_domain_rank, 100),
+    health_rank_scot =
+      ntile(simd2020_health_domain_rank, 100),
+    housing_rank_scot =
+      ntile(simd2020_housing_domain_rank, 100),
+    employment_rank_scot =
+      ntile(simd2020_employment_domain_rank, 100),
+    income_rank_scot = 
+      ntile(simd2020v2_income_domain_rank, 100),
+    working_age_prop = 
+      working_age_population / total_population,
+    working_age_rank_scot =
+      ntile(working_age_prop, 100),
+    overcrowded_rank_scot =
+      ntile(-(overcrowded_rate), 100),
+    no_central_heat_rank_scot = 
+      ntile(-(nocentralheat_rate), 100),
+    disability_rank_scot =
+      ntile(-cif, 100),
+    emergency_rank_scot =
+      ntile(-emerg, 100),
+    smr_rank_scot =
+      ntile(-smr, 100),
+    neet_rank_scot =
+      ntile(-not_participating, 100),
+    crime_rank_scot =
+      ntile(-crime_rate, 100))
+```
+
+#Join SIMD + Census
+```{r}
+simd <-
+simd %>%
+  left_join(., ages, by = "data_zone") %>%
+  left_join(., households, by = "data_zone") %>%
+  left_join(., ethnicity, by = "data_zone") %>%
+  left_join(., uk_residents, by = "data_zone")
+
+simd <-
+  simd %>%
+  mutate(across(ends_with("prop"),
+                ~ round(., digits = 2)))
+```
+
+#Write tidy data
+```{r}
+#needs a data dictionary
+
+#write all data
+simd %>%
+  write_csv("scotland_deprivation_with_rankings.csv")
+```
