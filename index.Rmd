@@ -1,0 +1,614 @@
+---
+title: "Priority Neighbourhoods in Aberdeen"
+
+output:
+  flexdashboard::flex_dashboard:
+    vertical_layout: scroll 
+    orientation: rows
+---
+
+```{r setup, include=FALSE}
+library(here)
+library(tidyverse)
+library(janitor)
+library(sf)
+library(flexdashboard)
+library(mapview)
+library(gt)
+library(kableExtra)
+library(RColorBrewer)
+```
+
+```{r}
+#Load data
+
+#SIMD and census data combined
+#This file was created using data_processing.Rmd
+scotland_measures <-
+  read_csv("scotland_deprivation_with_rankings.csv")
+
+#2011 census datazones for maps
+datazone_sf <- 
+  st_read(here(
+    "data", 
+    "sc_dz_11.shp"), quiet = T) %>%
+  clean_names()
+
+#Priority areas
+#source 
+#https://communityplanningaberdeen.org.uk/priority-neighbourhoods/
+
+priority_areas <-
+  c("Torry", "Middlefield", "Mastrick", "Cummings Park", "Northfield", "Heathryfold", "Seaton", "Woodside", "Tillydrone", "Kincorth", "Ashgrove", "Stockethill", "George Street")
+
+
+#filter Aberdeen Priority Neighbourhood data only
+#exclude the South part of Kincorth  
+
+aberdeen_priority <-
+  scotland_measures %>%
+  filter(la_name == "Aberdeen City") %>%
+  mutate(priority_area = 
+           str_detect(dz_name, 
+                      paste(priority_areas, collapse="|")),
+         priority_area =
+           ifelse(
+             dz_name == 
+               "Kincorth, Leggart and Nigg South - 01",
+             F, 
+             priority_area)) %>%
+  filter(priority_area == T)
+
+aberdeen_data_zones <- pull(aberdeen_priority, data_zone)
+
+#Aberdeen shapefile for maps
+aberdeen_sf <- 
+  filter(datazone_sf, 
+         data_zone %in% aberdeen_data_zones) 
+
+aberdeen_priority_sf <-
+  merge(aberdeen_sf, aberdeen_priority, by = "data_zone") %>%
+  filter(priority_area == T) %>%
+  select(data_zone, name, iz_name, simd2020v2_decile, ends_with("scot"), geometry) 
+```
+
+Neighbourhoods {data-orientation="columns"}
+==============================================
+
+Column
+----------------------------------------------
+
+### 
+
+This map shows Aberdeen's [**Priority Neighbourhoods**](https://communityplanningaberdeen.org.uk/priority-neighbourhoods/).
+
+The Community Empowerment Act gives support to neighbourhoods where people have poor outcomes due to socio-economic disadvantage.
+
+This website shows which Priority Neighbourhoods need support for
+
+-   central heating
+-   overcrowded homes
+-   lone parents
+-   recent immigrants
+-   young people not in education, employment, or training
+-   medical emergencies
+-   crime
+
+**See the menu above for more information about Priority Neighbourhoods.**
+
+Column
+----------------------------------------------
+
+### 
+
+```{r}
+aberdeen_priority_sf %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "iz_name", label = "name",
+    layer.name = "Priority Neighbourhoods",
+    color = "black", lwd = 1)
+```
+
+Deprivation
+==============================================
+
+Row
+----------------------------------------------
+
+### 
+
+The Scottish Government measures disadvantage with a score called the [Scottish Index of Multiple Deprivation](https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/). This score is created using data from 40 measures of health, education, crime, housing, and income.
+
+Here are **all of the Aberdeen Priority Neighbourhoods with their total disadvantage score**.
+
+Woodside (zone 4) is the most disadvantaged in Aberdeen, with a score of 97. A score of 97 means this Woodside neighbourhood is more disadvantaged than 97% of Scotland.
+
+**The dark red and orange areas are the priority neighbourhoods with the most disadvantage overall.**
+
+Row
+----------------------------------------------
+
+### 
+
+```{r}
+#SIMD
+aberdeen_priority_sf %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "simd_rank_scot",
+    label = "name",
+    layer.name = "Deprivation<br>Percentile<br>in Scotland",
+    color = "black", lwd = 1, 
+    alpha.regions = 1, 
+    col.regions = rev(brewer.pal(100, name = "Spectral")))
+```
+
+### 
+
+```{r}
+#areas by deprivation
+
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, simd_rank_scot) %>%
+  arrange(desc(simd_rank_scot)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most disadvantaged overall") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    simd_rank_scot = "deprivation percentile in Scotland")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Housing
+==============================================
+
+Row
+----------------------------------------------
+
+### 
+
+Here are **two measures of housing quality in Priority Neighbourhoods**
+
+-   How many people have no central heating?
+
+-   How many people live in overcrowded homes?
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more people living without central heating than 95% of Scotland.**
+
+```{r}
+#central heating
+aberdeen_priority_sf %>%
+  filter(no_central_heat_rank_scot < 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, nocentralheat_rate) %>%
+  arrange(desc(nocentralheat_rate)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most living without central heating") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    nocentralheat_rate = "% no central heat")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more people living in overcrowded homes than 95% of Scotland.**
+
+```{r}
+#overcrowding
+aberdeen_priority_sf %>%
+  filter(overcrowded_rank_scot <= 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, overcrowded_rate) %>%
+  arrange(desc(overcrowded_rate)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most living in overcrowded homes") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    overcrowded_rate = "% living overcrowded")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Children
+==============================================
+
+Row
+----------------------------------------------
+
+### 
+
+Here are **three measures of children's wellbeing in Priority Neighbourhoods**
+
+-   How many people live in lone parent households?
+
+-   How many young people (aged 16 to 19) are not in education, employment, or training?
+
+-   Which areas have the most children under age 5?
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more people living in lone parent households than 90% of Scotland.**
+
+```{r}
+#lone parents
+aberdeen_priority_sf %>%
+  filter(lone_parent_rank_scot <= 10) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  mutate(lone_parent_perc = lone_parent_prop * 100) %>%
+  select(data_zone, dz_name, total_population, lone_parent_perc) %>%
+  arrange(desc(lone_parent_perc)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods with most Lone Parents", 
+    subtitle = "ordered by most people living in lone-parent households") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    lone_parent_perc = "% living lone parent household")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more young people (aged 16 to 19) not in education, employment, or training than 98% of Scotland.**
+
+```{r}
+#neet
+aberdeen_priority_sf %>%
+  filter(neet_rank_scot <= 2) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, not_participating) %>%
+  arrange(desc(not_participating)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most 16 to 19 year olds not in education, employment, or training") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    not_participating = "% not in education, employment, training")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more children under age 5 than 95% of Scotland.**
+
+```{r}
+#under 5s
+aberdeen_priority_sf %>%
+  filter(under_5_rank_scot <= 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  mutate(under_5_perc = under_5_prop * 100) %>%
+  select(data_zone, dz_name, total_population, under_5_perc) %>%
+  arrange(desc(under_5_perc)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most under age 5") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    under_5_perc = "% under age 5")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Immigration
+==============================================
+
+Row
+----------------------------------------------
+
+### 
+
+Here are **two measures of immigration and ethnicity in Priority Neighbourhoods**
+
+-   How many people have recently immigrated into the UK?
+
+-   How many people are from minority ethnic backgrounds?
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more new immigrants (people moving to the UK in the last 2 years) than 98% of Scotland.**
+
+```{r}
+#new immigrants
+aberdeen_priority_sf %>%
+  filter(new_to_uk_rank_scot <= 2) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  mutate(new_to_uk_perc = new_to_uk_prop * 100) %>%
+  select(data_zone, dz_name, total_population, new_to_uk_perc) %>%
+  arrange(desc(new_to_uk_perc)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most new immigrants to UK") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    new_to_uk_perc = "% immigrated in last 2 years")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have more people of minority ethnic backgrounds than 97% of Scotland.**
+
+```{r}
+#minority ethnic
+aberdeen_priority_sf %>%
+  filter(minority_ethnic_rank_scot <= 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+aberdeen_priority %>%
+  mutate(minority_ethnic_perc = minority_ethnic_prop * 100) %>%
+  select(data_zone, dz_name, total_population, minority_ethnic_perc) %>%
+  arrange(desc(minority_ethnic_perc)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most people of minority ethnic backgrounds") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    minority_ethnic_perc = "% minority ethnic background")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Health
+==============================================
+
+Row
+----------------------------------------------
+
+### 
+
+Here are **two measures of health in Priority Neighbourhoods**
+
+-   Which people need more emergency medical care?
+
+-   Which areas have high death rates?
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have higher emergency medical care than 95% of Scotland.**
+
+```{r}
+#new immigrants
+aberdeen_priority_sf %>%
+  filter(emergency_rank_scot <= 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, emerg) %>%
+  arrange(desc(emerg)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by most emergency medical care") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    emerg = "emergency care (Scottish average = 100)")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Row
+----------------------------------------------
+
+### 
+
+**Red areas have higher death rates than 95% of Scotland.**
+
+```{r}
+#mortality
+aberdeen_priority_sf %>%
+  filter(smr_rank_scot <= 5) %>%
+  mapview(
+    map.types = "OpenStreetMap",
+    zcol = "name",
+    legend = FALSE,
+    alpha.regions = 0, color = "red", lwd = 2)
+```
+
+### 
+
+```{r}
+
+aberdeen_priority %>%
+  select(data_zone, dz_name, total_population, smr) %>%
+  arrange(desc(smr)) %>%
+  gt() %>%
+  tab_header(
+    title = "Priority Neighbourhoods", 
+    subtitle = "ordered by highest death rates") %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Name", 
+    total_population = "Population", 
+    smr = "death rates (Scottish average = 100)")  %>%
+  tab_options(container.height = 400,
+              data_row.padding = 1,
+              heading.padding = 1,
+              column_labels.padding = 1)
+```
+
+Sources
+==============================================
+
+Row
+----------------------------------------------
+### 
+
+All data and code for this analysis are available [here](https://github.com/JessButler/priority_neighbourhoods)  
+
+[Scottish Index of Multiple Deprivation 2020 version 2 ranks](https://www.gov.scot/publications/scottish-index-of-multiple-deprivation-2020v2-ranks/) were the source for  
+
+- area ID (Data_Zone) 
+- council area 
+- total population 
+- overall disadvantage score (percentile for SIMD2020v2_rank)
+
+[Scottish Index of Multiple Deprivation 2020 version 2 indicators](https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/) were the source for  
+
+- overcrowding 
+- no central heating 
+- people age 16 to 19 not in education, employment or training
+
+[2011 Scottish census](https://www.scotlandscensus.gov.uk/documents/2011-census-table-data-sns-data-zone-2011/) was the source for  
+
+- ethnicity (KS201SC.csv)
+- recent immigration (QS803SC.csv)
+- lone parents (QS112SC.csv)
+- children under age 5 (LC1117SC.csv)
+
+Data Zone map boundaries were from the [2011 Scotland Data Zones shapefiles](https://data.gov.uk/dataset/ab9f1f20-3b7f-4efa-9bd2-239acf63b540/data-zone-boundaries-2011)
