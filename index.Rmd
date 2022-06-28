@@ -597,7 +597,7 @@ Row
 ----------------------------------------------
 ### 
   
-**Summary of all Priority Neighbourhood areas and the data shown here**  
+**Summary of all Priority Neighbourhood areas and their data**  
 
 ```{r}
 aberdeen_priority %>%
@@ -627,9 +627,9 @@ aberdeen_priority %>%
     lone_parent_rank_scot =
       "lone parents percentile in Scotland",
     not_participating =
-      "% not in edu, emp, training",
+      "% not in education, employment, training",
     neet_rank_scot = 
-      "not in edu, emp, training percentile in Scotland",
+      "not in education, employment, training percentile in Scotland",
     under_5_prop = 
       "proportion under 5",
     under_5_rank_scot = 
