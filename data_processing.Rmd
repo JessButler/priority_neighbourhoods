@@ -36,9 +36,48 @@ simd_indicators <-
          broadband:nocentralheat_rate)
 ```
 
+#Tidy SIMD
+```{r}
+#join SIMD files
+#remove "%" and "*" and make numeric
+#convert suppressed small values to zero
+
+simd <- 
+  full_join(simd_indicators, simd_zones, 
+            by = c("data_zone" = "dz")) %>%
+  relocate(dz_name, .after = data_zone) %>%
+  mutate(across(everything(), 
+                ~ str_remove_all(., "%")),
+         across(everything(), 
+                ~ str_replace_all(., "\\*", "0")),
+         across(total_population:simd2020_housing_domain_rank, 
+                ~ as.numeric(.)))
+
+#create percentiles for SIMD indicators
+#positive if a high score is bad
+#negative if a high score is good
+
+simd <-
+simd %>%
+  mutate(
+    simd_rank_scot =
+      ntile(-simd2020v2_rank, 100),
+    overcrowded_rank_scot =
+      ntile(overcrowded_rate, 100),
+    no_central_heat_rank_scot = 
+      ntile(nocentralheat_rate, 100),
+    emergency_rank_scot =
+      ntile(emerg, 100),
+    drug_rank_scot =
+      ntile(drug, 100),
+    neet_rank_scot =
+      ntile(not_participating, 100))
+```
+
 #Census Data
 ```{r}
 #2011 census data
+#ntile creates percentiles for indicators
 
 #proportion of population that is not white
 ethnicity <- 
@@ -51,7 +90,7 @@ ethnicity <-
   mutate(minority_ethnic_prop = 
            1 - (white / all_people),
          minority_ethnic_rank_scot = 
-           ntile(-minority_ethnic_prop, 100)) %>%
+           ntile(minority_ethnic_prop, 100)) %>%
   select(data_zone, 
          ends_with("prop"), ends_with("scot"))
 
@@ -64,12 +103,8 @@ households <-
   clean_names() %>%
   mutate(lone_parent_prop = 
            one_family_household_lone_parent_family / all_people_in_households,
-         lone_pensioner_prop =
-           one_person_household_aged_65_and_over / all_people_in_households,
          lone_parent_rank_scot =
-           ntile(-lone_parent_prop, 100),
-         lone_pensioner_rank_scot =
-           ntile(-lone_pensioner_prop, 100)) %>%
+           ntile(lone_parent_prop, 100)) %>%
   select(data_zone, 
          ends_with("prop"), ends_with("scot"))
 
@@ -83,7 +118,7 @@ uk_residents <-
   clean_names() %>%
   mutate(new_to_uk_prop = less_than_two_years / all_people,
          new_to_uk_rank_scot = 
-           ntile(-new_to_uk_prop, 100)) %>%
+           ntile(new_to_uk_prop, 100)) %>%
   select(data_zone, 
          ends_with("prop"), ends_with("scot"))
 
@@ -104,73 +139,59 @@ age_and_sex %>%
   clean_names() %>%
   mutate(under_5_prop = x0_to_4 / all_people,
          under_5_rank_scot = 
-           ntile(-under_5_prop, 100))
+           ntile(under_5_prop, 100))
 
 ages <-
   ages %>%
   select(data_zone, ends_with("prop"), ends_with("scot"))
 ```
 
-#Tidy SIMD
-```{r}
-#join SIMD files
-#remove "%" and "*" and make numeric
-#convert suppressed small values to zero
-
-simd <- 
-  full_join(simd_indicators, simd_zones, 
-            by = c("data_zone" = "dz")) %>%
-  relocate(dz_name, .after = data_zone) %>%
-  mutate(across(everything(), 
-                ~ str_remove_all(., "%")),
-         across(everything(), 
-                ~ str_replace_all(., "\\*", "0")),
-         across(total_population:simd2020_housing_domain_rank, 
-                ~ as.numeric(.)))
-
-#create percentiles for SIMD indicators
-#positive if a high score is good
-#negative if a high score is bad
-
-simd <-
-simd %>%
-  mutate(
-    simd_rank_scot =
-      ntile(-simd2020v2_rank, 100),
-    overcrowded_rank_scot =
-      ntile(-(overcrowded_rate), 100),
-    no_central_heat_rank_scot = 
-      ntile(-(nocentralheat_rate), 100),
-    emergency_rank_scot =
-      ntile(-emerg, 100),
-    drug_rank_scot =
-      ntile(-drug, 100),
-    neet_rank_scot =
-      ntile(-not_participating, 100),
-    crime_rank_scot =
-      ntile(-crime_rate, 100))
-```
-
 #Join SIMD + Census
 ```{r}
-simd <-
+scotland_data <-
 simd %>%
   left_join(., ages, by = "data_zone") %>%
   left_join(., households, by = "data_zone") %>%
   left_join(., ethnicity, by = "data_zone") %>%
   left_join(., uk_residents, by = "data_zone")
 
-simd <-
-  simd %>%
+scotland_data <-
+  scotland_data %>%
   mutate(across(ends_with("prop"),
                 ~ round(., digits = 2)))
 ```
 
+#Priority Neighbourhoods
+```{r}
+#Priority areas
+#source 
+#https://communityplanningaberdeen.org.uk/priority-neighbourhoods/
+
+priority_areas <-
+  c("Torry", "Middlefield", "Mastrick", "Cummings Park", "Northfield", "Heathryfold", "Seaton", "Woodside", "Tillydrone", "Kincorth", "Ashgrove", "Stockethill", "George Street")
+
+
+#filter Aberdeen Priority Neighbourhood data only
+#exclude the South part of Kincorth
+
+aberdeen_priority <-
+  scotland_data %>%
+  filter(la_name == "Aberdeen City") %>%
+  mutate(priority_area = 
+           str_detect(dz_name, 
+                      paste(priority_areas,
+                            collapse="|")),
+         priority_area =
+           ifelse(
+             dz_name == 
+               "Kincorth, Leggart and Nigg South - 01",
+             F, 
+             priority_area)) %>%
+  filter(priority_area == T)
+```
+
 #Write tidy data
 ```{r}
-#needs a data dictionary
-
-#write all data
-simd %>%
-  write_csv("scotland_deprivation_with_rankings.csv")
+aberdeen_priority %>%
+  write_csv("aberdeen_priority_data.csv")
 ```

@@ -24,8 +24,8 @@ library(RColorBrewer)
 
 #SIMD and census data combined
 #This file was created using data_processing.Rmd
-scotland_measures <-
-  read_csv("scotland_deprivation_with_rankings.csv")
+aberdeen_priority <-
+  read_csv("aberdeen_priority_data.csv")
 
 #2011 census datazones for maps
 datazone_sf <- 
@@ -34,42 +34,18 @@ datazone_sf <-
     "sc_dz_11.shp"), quiet = T) %>%
   clean_names()
 
-#Priority areas
-#source 
-#https://communityplanningaberdeen.org.uk/priority-neighbourhoods/
 
-priority_areas <-
-  c("Torry", "Middlefield", "Mastrick", "Cummings Park", "Northfield", "Heathryfold", "Seaton", "Woodside", "Tillydrone", "Kincorth", "Ashgrove", "Stockethill", "George Street")
+aberdeen_priority_data_zones <-
+  pull(aberdeen_priority, data_zone)
 
-
-#filter Aberdeen Priority Neighbourhood data only
-#exclude the South part of Kincorth  
-
-aberdeen_priority <-
-  scotland_measures %>%
-  filter(la_name == "Aberdeen City") %>%
-  mutate(priority_area = 
-           str_detect(dz_name, 
-                      paste(priority_areas, collapse="|")),
-         priority_area =
-           ifelse(
-             dz_name == 
-               "Kincorth, Leggart and Nigg South - 01",
-             F, 
-             priority_area)) %>%
-  filter(priority_area == T)
-
-aberdeen_data_zones <- pull(aberdeen_priority, data_zone)
-
-#Aberdeen shapefile for maps
-aberdeen_sf <- 
+#Aberdeen priorty shapefile for maps
+aberdeen_priority_sf <- 
   filter(datazone_sf, 
-         data_zone %in% aberdeen_data_zones) 
-
-aberdeen_priority_sf <-
-  merge(aberdeen_sf, aberdeen_priority, by = "data_zone") %>%
-  filter(priority_area == T) %>%
-  select(data_zone, name, iz_name, simd2020v2_decile, ends_with("scot"), geometry) 
+         data_zone %in%
+           aberdeen_priority_data_zones) %>%
+  merge(., aberdeen_priority, #add data
+        by = "data_zone") %>%
+  select(data_zone, name, iz_name, ends_with("scot"), geometry) 
 ```
 
 Neighbourhoods {data-orientation="columns"}
@@ -101,6 +77,7 @@ Column
 ### 
 
 ```{r}
+#mapping neighbourhoods by intermediate zone name
 aberdeen_priority_sf %>%
   mapview(
     map.types = "OpenStreetMap",
@@ -131,7 +108,7 @@ Row
 ### 
 
 ```{r}
-#SIMD
+#SIMD deprivation percentile
 aberdeen_priority_sf %>%
   mapview(
     map.types = "OpenStreetMap",
@@ -190,7 +167,7 @@ Row
 ```{r}
 #central heating
 aberdeen_priority_sf %>%
-  filter(no_central_heat_rank_scot < 5) %>%
+  filter(no_central_heat_rank_scot >=95) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -224,12 +201,12 @@ Row
 
 ### 
 
-**Red areas have more people living in overcrowded homes than 95% of Scotland.**
+**Red areas have more people living in overcrowded homes than 97% of Scotland.**
 
 ```{r}
 #overcrowding
 aberdeen_priority_sf %>%
-  filter(overcrowded_rank_scot <= 5) %>%
+  filter(overcrowded_rank_scot >= 97) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -284,7 +261,7 @@ Row
 ```{r}
 #lone parents
 aberdeen_priority_sf %>%
-  filter(lone_parent_rank_scot <= 10) %>%
+  filter(lone_parent_rank_scot >= 90) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -301,7 +278,7 @@ aberdeen_priority %>%
   arrange(desc(lone_parent_perc)) %>%
   gt() %>%
   tab_header(
-    title = "Priority Neighbourhoods with most Lone Parents", 
+    title = "Priority Neighbourhoods with most lone parents", 
     subtitle = "ordered by most people living in lone-parent households") %>%
   cols_label(
     data_zone = "Data Zone",
@@ -324,7 +301,7 @@ Row
 ```{r}
 #neet
 aberdeen_priority_sf %>%
-  filter(neet_rank_scot <= 2) %>%
+  filter(neet_rank_scot >= 98) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -363,7 +340,7 @@ Row
 ```{r}
 #under 5s
 aberdeen_priority_sf %>%
-  filter(under_5_rank_scot <= 5) %>%
+  filter(under_5_rank_scot >= 95) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -417,7 +394,7 @@ Row
 ```{r}
 #new immigrants
 aberdeen_priority_sf %>%
-  filter(new_to_uk_rank_scot <= 2) %>%
+  filter(new_to_uk_rank_scot >= 98) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -457,7 +434,7 @@ Row
 ```{r}
 #minority ethnic
 aberdeen_priority_sf %>%
-  filter(minority_ethnic_rank_scot <= 5) %>%
+  filter(minority_ethnic_rank_scot >= 95) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -511,7 +488,7 @@ Row
 ```{r}
 #emergency care
 aberdeen_priority_sf %>%
-  filter(emergency_rank_scot <= 5) %>%
+  filter(emergency_rank_scot >= 95) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
@@ -548,9 +525,9 @@ Row
 **Red areas have more hospitalisations for drug use than 95% of Scotland.**
 
 ```{r}
-#mortality
+#drugs hospitalisations
 aberdeen_priority_sf %>%
-  filter(drug_rank_scot <= 5) %>%
+  filter(drug_rank_scot >= 95) %>%
   mapview(
     map.types = "OpenStreetMap",
     zcol = "name",
