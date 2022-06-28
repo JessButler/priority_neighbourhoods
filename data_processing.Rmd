@@ -193,5 +193,29 @@ aberdeen_priority <-
 #Write tidy data
 ```{r}
 aberdeen_priority %>%
+  select(data_zone,
+         dz_name, 
+         iz_name,
+         total_population,
+         simd2020v2_rank,
+         simd_rank_scot,
+         nocentralheat_rate,
+         no_central_heat_rank_scot,
+         overcrowded_rate,
+         overcrowded_rank_scot,
+         lone_parent_prop,
+         lone_parent_rank_scot,
+         not_participating,
+         neet_rank_scot,
+         under_5_prop,
+         under_5_rank_scot,
+         minority_ethnic_prop,
+         minority_ethnic_rank_scot,
+         new_to_uk_prop,
+         new_to_uk_rank_scot,
+         emerg,
+         emergency_rank_scot,
+         drug,
+         drug_rank_scot) %>%
   write_csv("aberdeen_priority_data.csv")
 ```

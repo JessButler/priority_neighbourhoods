@@ -15,7 +15,6 @@ library(sf)
 library(flexdashboard)
 library(mapview)
 library(gt)
-library(kableExtra)
 library(RColorBrewer)
 ```
 
@@ -34,11 +33,10 @@ datazone_sf <-
     "sc_dz_11.shp"), quiet = T) %>%
   clean_names()
 
-
 aberdeen_priority_data_zones <-
   pull(aberdeen_priority, data_zone)
 
-#Aberdeen priorty shapefile for maps
+#Aberdeen priority shapefile for maps
 aberdeen_priority_sf <- 
   filter(datazone_sf, 
          data_zone %in%
@@ -563,20 +561,18 @@ Sources
 Row
 ----------------------------------------------
 ### 
-Questions and comments very welcome!  
-Email [Jess Butler](jessicabutler@abdn.ac.uk)  
-
-
+Questions and comments very welcome! Email [Jess Butler](jessicabutler@abdn.ac.uk)  
+  
 All data and code for this analysis are available [here](https://github.com/JessButler/priority_neighbourhoods)  
 
-[Scottish Index of Multiple Deprivation 2020 version 2 ranks](https://www.gov.scot/publications/scottish-index-of-multiple-deprivation-2020v2-ranks/) were the source for  
+[Scottish Index of Multiple Deprivation 2020 version 2 ranks table](https://www.gov.scot/publications/scottish-index-of-multiple-deprivation-2020v2-ranks/) was the source for  
 
 - area ID (Data_Zone) 
 - council area 
 - total population 
 - overall disadvantage score (percentile for SIMD2020v2_rank)
 
-[Scottish Index of Multiple Deprivation 2020 version 2 indicators](https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/) were the source for  
+[Scottish Index of Multiple Deprivation 2020 version 2 indicators table](https://www.gov.scot/collections/scottish-index-of-multiple-deprivation-2020/) was the source for  
 
 - overcrowding 
 - no central heating 
@@ -584,11 +580,86 @@ All data and code for this analysis are available [here](https://github.com/Jess
 - emergency hospitalisations
 - drugs-related hospitalisations
 
-[2011 Scottish census](https://www.scotlandscensus.gov.uk/documents/2011-census-table-data-sns-data-zone-2011/) was the source for  
+[2011 Scottish census files](https://www.scotlandscensus.gov.uk/documents/2011-census-table-data-sns-data-zone-2011/) were the source for  
 
 - ethnicity (KS201SC.csv)
 - recent immigration (QS803SC.csv)
 - lone parents (QS112SC.csv)
 - children under age 5 (LC1117SC.csv)
 
-Data Zone map boundaries were from the [2011 Scotland Data Zones shapefiles](https://data.gov.uk/dataset/ab9f1f20-3b7f-4efa-9bd2-239acf63b540/data-zone-boundaries-2011)
+[2011 Scotland Data Zones shapefiles](https://data.gov.uk/dataset/ab9f1f20-3b7f-4efa-9bd2-239acf63b540/data-zone-boundaries-2011) were used to draw area boundaries
+
+
+Data
+==============================================
+
+Row
+----------------------------------------------
+### 
+  
+**Summary of all Priority Neighbourhood areas and the data shown here**  
+
+```{r}
+aberdeen_priority %>%
+  select(-iz_name) %>%
+  arrange(dz_name) %>%
+  gt() %>%
+  #tab_options(container.height = 400) %>%
+  cols_label(
+    data_zone = "Data Zone",
+    dz_name = "Data Zone Name",
+    total_population = 
+      "Total Population",
+    simd2020v2_rank = 
+      "SIMD rank",
+    simd_rank_scot = 
+      "SIMD percentile in Scotland",
+    nocentralheat_rate = 
+      "% no central heat",
+    no_central_heat_rank_scot =
+      "no central heat percentile in Scotland",
+    overcrowded_rate = 
+      "% overcrowded",
+    overcrowded_rank_scot = 
+      "overcrowded percentile in Scotland",
+    lone_parent_prop = 
+      "proportion lone parents",
+    lone_parent_rank_scot =
+      "lone parents percentile in Scotland",
+    not_participating =
+      "% not in edu, emp, training",
+    neet_rank_scot = 
+      "not in edu, emp, training percentile in Scotland",
+    under_5_prop = 
+      "proportion under 5",
+    under_5_rank_scot = 
+      "under 5 percentile in Scotland",
+    minority_ethnic_prop =
+      "proportion minority ethnic",
+    minority_ethnic_rank_scot = 
+      "minority ethnic percentile in Scotland",
+    new_to_uk_prop =
+      "proportion new to UK",
+    new_to_uk_rank_scot = 
+      "new to uk percentile in Scotland",
+    emerg = 
+      "emergency hospitalisations rate",
+    emergency_rank_scot =
+      "emergency hospitalisations percentile in Scotland",
+    drug =
+      "drug-related hospitalisations rate",
+    drug_rank_scot =
+      "drug-related hospitalisations percentile in Scotland")  %>%
+  tab_options(data_row.padding = 0,
+              heading.padding = 0,
+              column_labels.padding = 0)
+```
+
+
+
+
+
+
+
+
+
